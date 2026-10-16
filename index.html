@@ -138,9 +138,11 @@
   .mini {
     position: fixed;
     right: 20px;
-    bottom: calc(var(--band) + 16px);
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 6;
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 6px;
     padding: 7px;
@@ -151,13 +153,13 @@
   }
   body.idle .mini, body.in-panel .mini { opacity: 0; pointer-events: none; }
   .pos {
-    padding: 0 10px 0 8px;
+    padding: 4px 0 2px;
     font-size: 18px;
     font-weight: 700;
     color: var(--silver);
     font-variant-numeric: tabular-nums;
   }
-  .sep { width: 1px; height: 30px; background: var(--royal-dark); margin: 0 4px; }
+  .sep { width: 30px; height: 1px; background: var(--royal-dark); margin: 2px 0; }
   .mini button {
     width: 52px;
     height: 52px;
@@ -240,6 +242,41 @@
   }
   .now-clock { font-size: 76px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; color: var(--state); }
 
+  .session {
+    --ses: var(--white);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 24px;
+    background: var(--navy);
+    border: 1px solid var(--royal-dark);
+    border-radius: 14px;
+  }
+  .session[data-ses="idle"], .session[data-ses="paused"] { --ses: var(--silver); }
+  .session[data-ses="warn"] { --ses: var(--gold); }
+  .session[data-ses="over"] { --ses: var(--red); }
+  .session-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .session-nums { display: flex; gap: 40px; margin: 6px 0 10px; }
+  .session-nums b { display: block; font-size: 54px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; color: var(--ses); }
+  .session-nums span { font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--silver); }
+  .session .pill { background: var(--ses); }
+  .session .bar { height: 12px; }
+  .session .bar-fill { background: var(--ses); }
+  .session-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stages { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .stages li {
+    padding: 8px 6px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--silver);
+    background: rgba(255, 255, 255, .05);
+    border: 2px solid transparent;
+    border-radius: 8px;
+  }
+  .stages li.done { opacity: .55; }
+  .stages li.current { color: var(--white); background: var(--royal); border-color: var(--gold); }
+
   .btns { display: flex; flex-wrap: wrap; gap: 10px; }
   .btn {
     display: inline-flex;
@@ -304,6 +341,7 @@
   }
 
   @media (max-width: 700px) {
+    .stages { grid-template-columns: repeat(3, 1fr); }
     .now-top { flex-direction: column; align-items: flex-start; }
     .seek-labels .hint { display: none; }
     .order-head, .row { grid-template-columns: 2em 1fr 4em; }
@@ -341,7 +379,7 @@
             <div class="now-name" id="nowName">&nbsp;</div>
             <div class="now-meta">
               <span class="pill" id="nowStatus">Ready</span>
-              <span id="nowLeft">Session left 25:00</span>
+              <span id="nowNext"></span>
             </div>
           </div>
           <div class="now-clock" id="nowClock">0:00</div>
@@ -368,6 +406,28 @@
         <button class="btn" data-act="mute" id="panelMute">Sound on</button>
         <button class="btn" data-act="full">Fullscreen</button>
         <button class="btn quiet" data-act="reset">Reset forum</button>
+      </div>
+
+      <div class="session" id="session" data-ses="idle">
+        <div class="session-top">
+          <div>
+            <div class="now-pos">Session clock · 30 minutes</div>
+            <div class="session-nums">
+              <div><b id="sesElapsed">0:00</b><span>Elapsed</span></div>
+              <div><b id="sesLeft">30:00</b><span id="sesLeftLabel">Left</span></div>
+            </div>
+            <div class="now-meta">
+              <span class="pill" id="sesStatus">Not started</span>
+              <span id="sesPace"></span>
+            </div>
+          </div>
+          <div class="session-btns">
+            <button class="btn primary" data-act="sesToggle" id="sesToggle">Start session</button>
+            <button class="btn quiet" data-act="sesReset">Reset session clock</button>
+          </div>
+        </div>
+        <div class="bar"><div class="bar-fill" id="sesFill"></div></div>
+        <ol class="stages" id="stages"></ol>
       </div>
 
       <h3>Jump to a segment</h3>
@@ -410,31 +470,34 @@
 
 <script>
   const SEGMENTS = [
-    { who: "Moderator",   what: "Introduction",         secs: 180 },
-    { who: "Candidate 1", what: "Opening Statement",    secs: 120 },
-    { who: "Candidate 2", what: "Opening Statement",    secs: 120 },
-    { who: "Moderator",   what: "Question 1",           secs: 60 },
-    { who: "Candidate 1", what: "Answer to Question 1", secs: 120 },
-    { who: "Candidate 2", what: "Answer to Question 1", secs: 120 },
-    { who: "Moderator",   what: "Question 2",           secs: 60 },
-    { who: "Candidate 1", what: "Answer to Question 2", secs: 120 },
-    { who: "Candidate 2", what: "Answer to Question 2", secs: 120 },
-    { who: "Moderator",   what: "Question 3",           secs: 60 },
-    { who: "Candidate 1", what: "Answer to Question 3", secs: 120 },
-    { who: "Candidate 2", what: "Answer to Question 3", secs: 120 },
-    { who: "Moderator",   what: "Closing Remarks",      secs: 60 },
-    { who: "Candidate 1", what: "Closing Statement",    secs: 60 },
-    { who: "Candidate 2", what: "Closing Statement",    secs: 60 },
+    { who: "Moderator",   what: "Introduction",         secs: 180, stage: "Introduction" },
+    { who: "Candidate 1", what: "Opening Statement",    secs: 120, stage: "Openings" },
+    { who: "Candidate 2", what: "Opening Statement",    secs: 120, stage: "Openings" },
+    { who: "Moderator",   what: "Question 1",           secs: 60,  stage: "Question 1" },
+    { who: "Candidate 1", what: "Answer to Question 1", secs: 120, stage: "Question 1" },
+    { who: "Candidate 2", what: "Answer to Question 1", secs: 120, stage: "Question 1" },
+    { who: "Moderator",   what: "Question 2",           secs: 60,  stage: "Question 2" },
+    { who: "Candidate 1", what: "Answer to Question 2", secs: 120, stage: "Question 2" },
+    { who: "Candidate 2", what: "Answer to Question 2", secs: 120, stage: "Question 2" },
+    { who: "Moderator",   what: "Question 3",           secs: 60,  stage: "Question 3" },
+    { who: "Candidate 1", what: "Answer to Question 3", secs: 120, stage: "Question 3" },
+    { who: "Candidate 2", what: "Answer to Question 3", secs: 120, stage: "Question 3" },
+    { who: "Moderator",   what: "Closing Remarks",      secs: 60,  stage: "Closings" },
+    { who: "Candidate 1", what: "Closing Statement",    secs: 60,  stage: "Closings" },
+    { who: "Candidate 2", what: "Closing Statement",    secs: 60,  stage: "Closings" },
   ];
+  const STAGES = [...new Set(SEGMENTS.map((s) => s.stage))];
+  const SESSION_SECS = 30 * 60;
+  const SESSION_WARN_SECS = 5 * 60;
   const WARN_SECS = 30;
   const STEP_SECS = 15;
   const IDLE_MS = 3000;
   const WARN_CHIME = true;
 
   const SPEED = Math.max(0.1, Number(new URLSearchParams(location.search).get("speed")) || 1);
-  const STORE = "forum-timer-v1" + (SPEED === 1 ? "" : "-speed");
+  const STORE = "forum-timer-v1:" + location.pathname + (SPEED === 1 ? "" : ":speed");
   const STALE_MS = 2 * 60 * 60 * 1000;
-  const MUTE_STORE = "forum-timer-muted";
+  const MUTE_STORE = "forum-timer-muted:" + location.pathname;
 
   const ICONS = {
     play: '<svg viewBox="0 0 24 24"><path class="solid" d="M7 4.5v15l13-7.5z"/></svg>',
@@ -449,7 +512,9 @@
     app: $("app"), panel: $("panel"), mini: $("mini"),
     speaker: $("speaker"), what: $("what"), status: $("status"), clock: $("clock"), barFill: $("barFill"),
     pos: $("pos"), toggleBtn: $("toggleBtn"), muteBtn: $("muteBtn"), soundNote: $("soundNote"),
-    nowPos: $("nowPos"), nowName: $("nowName"), nowStatus: $("nowStatus"), nowLeft: $("nowLeft"),
+    nowPos: $("nowPos"), nowName: $("nowName"), nowStatus: $("nowStatus"), nowNext: $("nowNext"),
+    session: $("session"), sesElapsed: $("sesElapsed"), sesLeft: $("sesLeft"), sesLeftLabel: $("sesLeftLabel"),
+    sesStatus: $("sesStatus"), sesPace: $("sesPace"), sesToggle: $("sesToggle"), sesFill: $("sesFill"), stages: $("stages"),
     nowClock: $("nowClock"), panelToggle: $("panelToggle"), panelMute: $("panelMute"), order: $("order"),
     panelFill: $("panelFill"), seekEnd: $("seekEnd"),
     confirm: $("confirm"), confirmText: $("confirmText"), confirmYes: $("confirmYes"), confirmNo: $("confirmNo"),
@@ -461,9 +526,14 @@
   let runStart = 0;
   let extraMs = 0;
 
+  let sesRunning = false;
+  let sesBase = 0;
+  let sesStart = 0;
+
   const elapsed = () => baseMs + (running ? (performance.now() - runStart) * SPEED : 0);
   const duration = () => Math.max(0, SEGMENTS[idx].secs * 1000 + extraMs);
   const remaining = () => duration() - elapsed();
+  const sesElapsed = () => sesBase + (sesRunning ? (performance.now() - sesStart) * SPEED : 0);
 
   function mmss(totalSecs) {
     return Math.floor(totalSecs / 60) + ":" + String(totalSecs % 60).padStart(2, "0");
@@ -541,6 +611,10 @@
     if (running) return;
     runStart = performance.now();
     running = true;
+    if (!sesRunning && sesElapsed() === 0) {
+      sesStart = runStart;
+      sesRunning = true;
+    }
     changed();
   }
   function pause() {
@@ -564,6 +638,24 @@
   function adjust(secs) {
     extraMs = Math.max(-SEGMENTS[idx].secs * 1000, extraMs + secs * 1000);
     changed();
+  }
+
+  function sesToggle() {
+    if (sesRunning) {
+      sesBase = sesElapsed();
+      sesRunning = false;
+    } else {
+      sesStart = performance.now();
+      sesRunning = true;
+    }
+    changed();
+  }
+  function sesReset(e) {
+    askConfirm("Reset the session clock to 0:00?", () => {
+      sesRunning = false;
+      sesBase = 0;
+      changed();
+    }, e && e.clientX, e && e.clientY);
   }
 
   function setRemaining(secsLeft) {
@@ -608,7 +700,12 @@
   $$("[data-seek]").forEach((hit) => hit.addEventListener("click", (e) => seekFromClick(e, hit)));
 
   function resetAll(e) {
-    askConfirm("Reset the whole forum to segment 1?", () => { running = false; go(0); }, e && e.clientX, e && e.clientY);
+    askConfirm("Reset the forum and the session clock?", () => {
+      running = false;
+      sesRunning = false;
+      sesBase = 0;
+      go(0);
+    }, e && e.clientX, e && e.clientY);
   }
 
   function fullscreen() {
@@ -648,6 +745,38 @@
       el.order.appendChild(li);
       at += s.secs;
     });
+    STAGES.forEach((name) => {
+      const li = document.createElement("li");
+      li.textContent = name;
+      el.stages.appendChild(li);
+    });
+  }
+
+  const SES_STATUS = { idle: "Not started", paused: "Paused", running: "Running", warn: "Running", over: "Over time" };
+
+  function renderSession(rem, upcoming) {
+    const sE = sesElapsed();
+    const sLeft = SESSION_SECS * 1000 - sE;
+    const ses = !sesRunning ? (sE === 0 ? "idle" : "paused")
+      : sLeft <= 0 ? "over" : sLeft <= SESSION_WARN_SECS * 1000 ? "warn" : "running";
+
+    el.session.dataset.ses = ses;
+    setText(el.sesElapsed, mmss(Math.floor(sE / 1000)));
+    setText(el.sesLeft, sLeft >= 0 ? mmss(Math.ceil(sLeft / 1000)) : "+" + mmss(Math.floor(-sLeft / 1000)));
+    setText(el.sesLeftLabel, sLeft >= 0 ? "Left" : "Over");
+    setText(el.sesStatus, SES_STATUS[ses]);
+    el.sesFill.style.width = (Math.min(1, sE / (SESSION_SECS * 1000)) * 100).toFixed(2) + "%";
+    setText(el.sesToggle, sesRunning ? "Pause session" : sE === 0 ? "Start session" : "Resume session");
+    el.sesToggle.classList.toggle("primary", !sesRunning);
+
+    if (ses === "idle") {
+      setText(el.sesPace, "Starts with the first segment");
+    } else {
+      const projected = Math.round(sE / 1000 + Math.max(0, rem / 1000) + upcoming);
+      const spare = SESSION_SECS - projected;
+      setText(el.sesPace, `On pace to finish at ${mmss(projected)} · ` +
+        (spare >= 0 ? `${mmss(spare)} to spare` : `${mmss(-spare)} over`));
+    }
   }
 
   const STATUS_TEXT = { ready: "Ready", paused: "Paused", running: "Running", warn: "Running", over: "Time's up" };
@@ -670,9 +799,9 @@
     setText(el.seekEnd, mmss(Math.round(duration() / 1000)));
     setText(el.nowStatus, STATUS_TEXT[state]);
     const upcoming = SEGMENTS.slice(idx + 1).reduce((sum, s) => sum + s.secs, 0);
-    setText(el.nowLeft, "Session left " + mmss(upcoming + Math.max(0, Math.ceil(rem / 1000))));
     setText(el.panelToggle, running ? "Pause" : state === "ready" ? "Start" : "Resume");
     el.panelToggle.classList.toggle("primary", !running);
+    renderSession(rem, upcoming);
 
     if (idx !== lastIdx) {
       lastIdx = idx;
@@ -682,6 +811,13 @@
       el.pos.textContent = `${idx + 1}/${SEGMENTS.length}`;
       el.nowPos.textContent = `Segment ${idx + 1} of ${SEGMENTS.length}`;
       el.nowName.textContent = `${s.who} · ${s.what}`;
+      const n = SEGMENTS[idx + 1];
+      el.nowNext.textContent = n ? `Next: ${n.who} · ${n.what}` : "Last segment";
+      const stage = STAGES.indexOf(s.stage);
+      [...el.stages.children].forEach((li, i) => {
+        li.classList.toggle("done", i < stage);
+        li.classList.toggle("current", i === stage);
+      });
       $$('[data-act="prev"]').forEach((b) => { b.disabled = idx === 0; });
       $$('[data-act="next"]').forEach((b) => { b.disabled = idx === SEGMENTS.length - 1; });
       [...el.order.querySelectorAll(".row")].forEach((b, i) => {
@@ -713,7 +849,9 @@
 
   function save() {
     try {
-      localStorage.setItem(STORE, JSON.stringify({ idx, running, elapsed: elapsed(), extraMs, at: Date.now() }));
+      localStorage.setItem(STORE, JSON.stringify({
+        idx, running, elapsed: elapsed(), extraMs, sesRunning, sesElapsed: sesElapsed(), at: Date.now(),
+      }));
     } catch (e) {}
   }
 
@@ -724,10 +862,17 @@
       idx = s.idx;
       extraMs = s.extraMs || 0;
       baseMs = s.elapsed || 0;
+      sesBase = s.sesElapsed || 0;
+      const away = Math.max(0, Date.now() - s.at) * SPEED;
       if (s.running) {
-        baseMs += Math.max(0, Date.now() - s.at) * SPEED;
+        baseMs += away;
         runStart = performance.now();
         running = true;
+      }
+      if (s.sesRunning) {
+        sesBase += away;
+        sesStart = performance.now();
+        sesRunning = true;
       }
     } catch (e) {}
   }
@@ -770,6 +915,7 @@
   const actions = {
     prev, next, toggle, restart, bell: timeUpBell, mute: toggleMute, full: fullscreen, reset: resetAll,
     plus: () => adjust(STEP_SECS), minus: () => adjust(-STEP_SECS), panel: showPanel, top: showTimer,
+    sesToggle, sesReset,
   };
   $$("[data-act]").forEach((b) => {
     b.addEventListener("click", (e) => actions[b.dataset.act](e));
