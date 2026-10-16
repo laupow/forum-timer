@@ -17,6 +17,8 @@
     --gold: #ffc700;
     --white: #ffffff;
     --red: #ff5b5b;
+    --alarm: #c8102e;
+    --alarm-dark: #6e0a1a;
 
     --bg: var(--navy);
     --text: var(--white);
@@ -55,11 +57,17 @@
 
   body[data-state="ready"], body[data-state="paused"] { --state: var(--silver); }
   body[data-state="warn"] { --state: var(--gold); }
-  body[data-state="over"] { --state: var(--red); }
-  body[data-state="over"] .app { animation: pulse 2.4s ease-in-out infinite alternate; }
-  @keyframes pulse { from { background-color: var(--bg); } to { background-color: #5c1424; } }
+  body[data-state="danger"], body[data-state="over"], body[data-state="overtime"] { --state: var(--red); }
 
   .app {
+    --page: var(--bg);
+    --ink: var(--white);
+    --ink-soft: var(--silver);
+    --clock: var(--state);
+    --track: var(--royal-dark);
+    --pill-ink: var(--navy);
+    background: var(--page);
+    color: var(--ink);
     height: 100vh;
     height: 100dvh;
     scroll-snap-align: start;
@@ -71,38 +79,60 @@
     padding: 4vh 4vw;
     text-align: center;
   }
+  body[data-state="warn"] .app {
+    --page: var(--gold);
+    --ink: var(--navy);
+    --ink-soft: var(--navy);
+    --clock: var(--navy);
+    --track: rgba(9, 60, 102, .25);
+  }
+  body[data-state="danger"] .app, body[data-state="over"] .app, body[data-state="overtime"] .app {
+    --page: var(--alarm);
+    --ink: var(--white);
+    --ink-soft: var(--white);
+    --clock: var(--white);
+    --track: rgba(255, 255, 255, .3);
+    --pill-ink: var(--alarm);
+  }
+  body[data-state="over"] .app { animation: flash 1s steps(1) infinite; }
+  body[data-state="overtime"] .app { animation: pulse 2.4s ease-in-out infinite alternate; }
+  @keyframes flash { 0% { background-color: var(--alarm); } 50% { background-color: var(--alarm-dark); } }
+  @keyframes pulse { from { background-color: var(--alarm); } to { background-color: var(--alarm-dark); } }
+
   .speaker { font-size: min(8.5vw, 14vh); font-weight: 900; line-height: 1; }
-  .what { font-size: min(4.2vw, 7.5vh); font-weight: 600; line-height: 1.15; color: var(--soft); }
+  .what { font-size: min(4.2vw, 7.5vh); font-weight: 600; line-height: 1.15; color: var(--ink-soft); }
   .status {
     visibility: hidden;
     font-size: min(2.6vw, 4.5vh);
     font-weight: 900;
     letter-spacing: .14em;
     text-transform: uppercase;
-    color: var(--bg);
-    background: var(--state);
+    color: var(--pill-ink);
+    background: var(--clock);
     padding: .15em .8em;
     border-radius: .3em;
   }
   body[data-state="ready"] .status,
   body[data-state="paused"] .status,
-  body[data-state="over"] .status { visibility: visible; }
+  body[data-state="over"] .status,
+  body[data-state="overtime"] .status { visibility: visible; }
   .clock {
     font-size: min(30vw, 48vh);
     font-weight: 900;
     line-height: .9;
     letter-spacing: -.01em;
     font-variant-numeric: tabular-nums;
-    color: var(--state);
+    color: var(--clock);
   }
   .bar-hit { position: relative; width: min(72vw, 1500px); padding: 12px 0; cursor: pointer; }
   .bar {
     height: clamp(8px, 1.6vh, 18px);
-    background: var(--royal-dark);
+    background: var(--track, var(--royal-dark));
     border-radius: 99px;
     overflow: hidden;
   }
-  .bar-fill { height: 100%; width: 0; background: var(--state); }
+  .bar-fill { height: 100%; width: 0; background: var(--clock, var(--state)); }
+  body[data-state="warn"] .app .ghost { background: var(--navy); }
   .ghost {
     display: none;
     position: absolute;
@@ -177,6 +207,7 @@
   .mini button:disabled { opacity: .3; cursor: default; }
   .mini button.go { background: var(--gold); color: var(--navy); }
   .mini button.muted { color: var(--red); }
+  .mini button.txt { font: inherit; font-size: 18px; font-weight: 900; }
   svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   svg .solid { fill: currentColor; stroke: none; }
 
@@ -216,6 +247,8 @@
   .corner-bar { margin-top: 5px; height: 3px; background: var(--royal-dark); border-radius: 2px; overflow: hidden; }
   .corner-bar div { height: 100%; width: 0; background: var(--ses); }
   body.in-panel .corner { display: none; }
+  body[data-state="warn"] .corner { color: var(--navy); }
+  body[data-state="danger"] .corner, body[data-state="over"] .corner, body[data-state="overtime"] .corner { color: var(--white); }
 
   .panel {
     min-height: 100vh;
@@ -425,6 +458,7 @@
         <button class="btn" data-act="plus">+15s</button>
         <button class="btn" data-act="bell">Ring bell</button>
         <button class="btn" data-act="mute" id="panelMute">Sound on</button>
+        <button class="btn" data-act="auto" id="panelAuto">Auto-advance on</button>
         <button class="btn" data-act="full">Fullscreen</button>
         <button class="btn quiet" data-act="reset">Reset forum</button>
       </div>
@@ -458,7 +492,7 @@
       <p class="keys">
         <kbd>Space</kbd> start / pause &nbsp; <kbd>←</kbd> <kbd>→</kbd> previous / next &nbsp; <kbd>R</kbd> restart segment &nbsp;
         <kbd>+</kbd> <kbd>−</kbd> 15 seconds &nbsp; <kbd>B</kbd> ring bell &nbsp; <kbd>M</kbd> mute &nbsp;
-        <kbd>F</kbd> fullscreen &nbsp; <kbd>C</kbd> switch between timer and controls &nbsp; <kbd>Home</kbd> reset forum
+        <kbd>A</kbd> auto-advance &nbsp; <kbd>F</kbd> fullscreen &nbsp; <kbd>C</kbd> switch between timer and controls &nbsp; <kbd>Home</kbd> reset forum
       </p>
     </div>
   </section>
@@ -472,6 +506,7 @@
     <button data-act="next" title="Next segment (→)">
       <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
     </button>
+    <button data-act="plus" class="txt" title="Add 15 seconds (+)">+15</button>
     <span class="sep"></span>
     <button data-act="bell" title="Ring the bell now (B)">
       <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2h16z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
@@ -514,7 +549,9 @@
   const STAGES = [...new Set(SEGMENTS.map((s) => s.stage))];
   const SESSION_SECS = 30 * 60;
   const SESSION_WARN_SECS = 5 * 60;
-  const WARN_SECS = 30;
+  const WARN_SECS = 20;
+  const DANGER_SECS = 5;
+  const HOLD_SECS = 3;
   const STEP_SECS = 15;
   const IDLE_MS = 3000;
   const WARN_CHIME = true;
@@ -523,6 +560,7 @@
   const STORE = "forum-timer-v1:" + location.pathname + (SPEED === 1 ? "" : ":speed");
   const STALE_MS = 2 * 60 * 60 * 1000;
   const MUTE_STORE = "forum-timer-muted:" + location.pathname;
+  const AUTO_STORE = "forum-timer-auto:" + location.pathname;
 
   const ICONS = {
     play: '<svg viewBox="0 0 24 24"><path class="solid" d="M7 4.5v15l13-7.5z"/></svg>',
@@ -542,6 +580,7 @@
     sesStatus: $("sesStatus"), sesPace: $("sesPace"), sesToggle: $("sesToggle"), sesFill: $("sesFill"), stages: $("stages"),
     corner: $("corner"), wall: $("wall"), cornerSes: $("cornerSes"), cornerFill: $("cornerFill"),
     nowClock: $("nowClock"), panelToggle: $("panelToggle"), panelMute: $("panelMute"), order: $("order"),
+    panelAuto: $("panelAuto"),
     panelFill: $("panelFill"), seekEnd: $("seekEnd"),
     confirm: $("confirm"), confirmText: $("confirmText"), confirmYes: $("confirmYes"), confirmNo: $("confirmNo"),
   };
@@ -567,20 +606,31 @@
 
   function clockText(rem) {
     if (rem > 0) return mmss(Math.ceil(rem / 1000));
-    const over = Math.floor(-rem / 1000);
-    return over < 1 ? "0:00" : "+" + mmss(over);
+    if (-rem < HOLD_SECS * 1000) return "0:00";
+    return "+" + mmss(Math.floor(-rem / 1000));
   }
 
   function stateFor(rem) {
-    if (rem <= 0) return "over";
+    if (rem <= 0) return running && -rem < HOLD_SECS * 1000 ? "over" : "overtime";
     if (!running) return elapsed() === 0 ? "ready" : "paused";
+    if (rem <= DANGER_SECS * 1000) return "danger";
     if (rem <= WARN_SECS * 1000) return "warn";
     return "running";
   }
 
   let audio = null;
   let muted = false;
-  try { muted = localStorage.getItem(MUTE_STORE) === "1"; } catch (e) {}
+  let autoAdvance = true;
+  try {
+    muted = localStorage.getItem(MUTE_STORE) === "1";
+    autoAdvance = localStorage.getItem(AUTO_STORE) !== "0";
+  } catch (e) {}
+
+  function toggleAuto() {
+    autoAdvance = !autoAdvance;
+    try { localStorage.setItem(AUTO_STORE, autoAdvance ? "1" : "0"); } catch (e) {}
+    render();
+  }
 
   function unlockAudio() {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -803,26 +853,34 @@
     if (ses === "idle") {
       setText(el.sesPace, "Starts with the first segment");
     } else {
-      const projected = Math.round(sE / 1000 + Math.max(0, rem / 1000) + upcoming);
+      const handoffs = autoAdvance ? (SEGMENTS.length - 1 - idx) * HOLD_SECS : 0;
+      const projected = Math.round(sE / 1000 + Math.max(0, rem / 1000) + upcoming + handoffs);
       const spare = SESSION_SECS - projected;
       setText(el.sesPace, `On pace to finish at ${mmss(projected)} · ` +
         (spare >= 0 ? `${mmss(spare)} to spare` : `${mmss(-spare)} over`));
     }
   }
 
-  const STATUS_TEXT = { ready: "Ready", paused: "Paused", running: "Running", warn: "Running", over: "Time's up" };
+  const STATUS_TEXT = {
+    ready: "Ready", paused: "Paused", running: "Running", warn: "Running", danger: "Running",
+    over: "Time's up", overtime: "Time's up",
+  };
   const setText = (node, text) => { if (node.textContent !== text) node.textContent = text; };
 
   let lastIdx = -1, lastRunning = null, lastMuted = null;
   function render() {
     const rem = remaining();
+    if (autoAdvance && running && -rem >= HOLD_SECS * 1000 && idx < SEGMENTS.length - 1) {
+      go(idx + 1);
+      return;
+    }
     const state = stateFor(rem);
     const progress = duration() ? Math.min(1, elapsed() / duration()) : 1;
     const clock = clockText(rem);
 
     document.body.dataset.state = state;
     setText(el.clock, clock);
-    setText(el.status, state === "over" ? "Time's up" : state === "ready" ? "Ready" : "Paused");
+    setText(el.status, state === "over" || state === "overtime" ? "Time's up" : state === "ready" ? "Ready" : "Paused");
     el.barFill.style.width = el.panelFill.style.width = (progress * 100).toFixed(2) + "%";
     checkSounds(rem);
 
@@ -868,6 +926,8 @@
       el.panelMute.textContent = muted ? "Muted" : "Sound on";
       el.panelMute.classList.toggle("muted", muted);
     }
+    setText(el.panelAuto, autoAdvance ? "Auto-advance on" : "Auto-advance off");
+    el.panelAuto.classList.toggle("quiet", !autoAdvance);
     const blocked = !muted && running && (!audio || audio.state !== "running");
     el.soundNote.classList.toggle("show", blocked);
   }
@@ -934,6 +994,7 @@
       case "f": case "F": fullscreen(); break;
       case "b": case "B": timeUpBell(); break;
       case "m": case "M": toggleMute(); break;
+      case "a": case "A": toggleAuto(); break;
       case "c": case "C": inPanel ? showTimer() : showPanel(); break;
       case "Home": resetAll(); break;
       case "+": case "=": adjust(STEP_SECS); break;
@@ -946,7 +1007,7 @@
   const actions = {
     prev, next, toggle, restart, bell: timeUpBell, mute: toggleMute, full: fullscreen, reset: resetAll,
     plus: () => adjust(STEP_SECS), minus: () => adjust(-STEP_SECS), panel: showPanel, top: showTimer,
-    sesToggle, sesReset,
+    sesToggle, sesReset, auto: toggleAuto,
   };
   $$("[data-act]").forEach((b) => {
     b.addEventListener("click", (e) => actions[b.dataset.act](e));
