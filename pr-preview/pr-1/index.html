@@ -495,9 +495,9 @@
   const WARN_CHIME = true;
 
   const SPEED = Math.max(0.1, Number(new URLSearchParams(location.search).get("speed")) || 1);
-  const STORE = "forum-timer-v1" + (SPEED === 1 ? "" : "-speed");
+  const STORE = "forum-timer-v1:" + location.pathname + (SPEED === 1 ? "" : ":speed");
   const STALE_MS = 2 * 60 * 60 * 1000;
-  const MUTE_STORE = "forum-timer-muted";
+  const MUTE_STORE = "forum-timer-muted:" + location.pathname;
 
   const ICONS = {
     play: '<svg viewBox="0 0 24 24"><path class="solid" d="M7 4.5v15l13-7.5z"/></svg>',
