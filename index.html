@@ -335,6 +335,7 @@
     padding: 10px 14px;
   }
   .out-note { font-size: 15px; color: var(--gold); }
+  .out-help { flex-basis: 100%; font-size: 15px; color: var(--silver); }
   .btn {
     display: inline-flex;
     align-items: center;
@@ -468,7 +469,7 @@
       <div class="out" id="outRow" hidden>
         <span class="out-label">Bell output</span>
         <select id="sinkSelect"><option value="">This computer (default)</option></select>
-        <button class="btn quiet" data-act="findSinks" id="findSinks">List audio devices</button>
+        <span class="out-help" id="outHelp" hidden>To list devices, click the icon left of the address bar, set Microphone to Allow, then reload. The timer never turns the microphone on.</span>
         <span class="out-note" id="outNote"></span>
       </div>
 
@@ -587,7 +588,7 @@
     corner: $("corner"), wall: $("wall"), endWrap: $("endWrap"), endAt: $("endAt"), cornerFill: $("cornerFill"),
     nowClock: $("nowClock"), panelToggle: $("panelToggle"), panelMute: $("panelMute"), order: $("order"),
     panelAuto: $("panelAuto"),
-    outRow: $("outRow"), sinkSelect: $("sinkSelect"), findSinks: $("findSinks"), outNote: $("outNote"),
+    outRow: $("outRow"), sinkSelect: $("sinkSelect"), outHelp: $("outHelp"), outNote: $("outNote"),
     panelFill: $("panelFill"), seekEnd: $("seekEnd"),
     confirm: $("confirm"), confirmText: $("confirmText"), confirmYes: $("confirmYes"), confirmNo: $("confirmNo"),
   };
@@ -644,21 +645,16 @@
       .catch(() => setText(el.outNote, "Couldn't use that device. The bell plays on this computer."));
   }
 
-  async function listSinks(ask) {
+  async function listSinks() {
     try {
-      if (ask) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getTracks().forEach((t) => t.stop());
-      }
       const outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) =>
         d.kind === "audiooutput" && d.label && d.deviceId !== "default" && d.deviceId !== "communications");
       el.sinkSelect.length = 1;
       outs.forEach((d) => el.sinkSelect.add(new Option(d.label, d.deviceId)));
       el.sinkSelect.value = outs.some((d) => d.deviceId === sinkId) ? sinkId : "";
-      el.findSinks.hidden = outs.length > 0;
-      if (ask) setText(el.outNote, "");
+      el.outHelp.hidden = outs.length > 0;
     } catch (e) {
-      setText(el.outNote, "Allow microphone access so the browser can list audio devices.");
+      el.outHelp.hidden = false;
     }
   }
 
@@ -1040,7 +1036,7 @@
   const actions = {
     prev, next, toggle, restart, bell: timeUpBell, mute: toggleMute, full: fullscreen, reset: resetAll,
     plus: () => adjust(STEP_SECS), minus: () => adjust(-STEP_SECS), panel: showPanel, top: showTimer,
-    sesToggle, sesReset, auto: toggleAuto, findSinks: () => listSinks(true),
+    sesToggle, sesReset, auto: toggleAuto,
   };
   el.sinkSelect.addEventListener("change", chooseSink);
   $$("[data-act]").forEach((b) => {
@@ -1066,8 +1062,13 @@
   buildOrder();
   if (canPickOutput) {
     el.outRow.hidden = false;
-    listSinks(false);
-    navigator.mediaDevices.addEventListener("devicechange", () => listSinks(false));
+    listSinks();
+    navigator.mediaDevices.addEventListener("devicechange", listSinks);
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "microphone" })
+        .then((p) => { p.onchange = listSinks; })
+        .catch(() => {});
+    }
   }
   load();
   lastZone = zoneFor(remaining());
