@@ -320,6 +320,22 @@
   .session-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 
   .btns { display: flex; flex-wrap: wrap; gap: 10px; }
+  .out { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .out[hidden], .out [hidden] { display: none; }
+  .out-label { font-size: 14px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--silver); }
+  .out select {
+    min-width: 16em;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--white);
+    background: var(--royal-dark);
+    border: 1px solid #2a72ad;
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .out-note { font-size: 15px; color: var(--gold); }
+  .out-help { flex-basis: 100%; font-size: 15px; color: var(--silver); }
   .btn {
     display: inline-flex;
     align-items: center;
@@ -450,6 +466,13 @@
         <button class="btn quiet" data-act="reset">Reset forum</button>
       </div>
 
+      <div class="out" id="outRow" hidden>
+        <span class="out-label">Bell output</span>
+        <select id="sinkSelect"><option value="">This computer (default)</option></select>
+        <span class="out-help" id="outHelp" hidden>To list devices, click the icon left of the address bar, set Microphone to Allow, then reload. The timer never turns the microphone on.</span>
+        <span class="out-note" id="outNote"></span>
+      </div>
+
       <div class="session" id="session" data-ses="idle">
         <div class="session-top">
           <div>
@@ -544,6 +567,7 @@
   const STALE_MS = 2 * 60 * 60 * 1000;
   const MUTE_STORE = "forum-timer-muted:" + location.pathname;
   const AUTO_STORE = "forum-timer-auto:" + location.pathname;
+  const OUT_STORE = "forum-timer-output:" + location.pathname;
 
   const ICONS = {
     play: '<svg viewBox="0 0 24 24"><path class="solid" d="M7 4.5v15l13-7.5z"/></svg>',
@@ -564,6 +588,7 @@
     corner: $("corner"), wall: $("wall"), endWrap: $("endWrap"), endAt: $("endAt"), cornerFill: $("cornerFill"),
     nowClock: $("nowClock"), panelToggle: $("panelToggle"), panelMute: $("panelMute"), order: $("order"),
     panelAuto: $("panelAuto"),
+    outRow: $("outRow"), sinkSelect: $("sinkSelect"), outHelp: $("outHelp"), outNote: $("outNote"),
     panelFill: $("panelFill"), seekEnd: $("seekEnd"),
     confirm: $("confirm"), confirmText: $("confirmText"), confirmYes: $("confirmYes"), confirmNo: $("confirmNo"),
   };
@@ -604,10 +629,40 @@
   let audio = null;
   let muted = false;
   let autoAdvance = true;
+  let sinkId = "";
   try {
     muted = localStorage.getItem(MUTE_STORE) === "1";
     autoAdvance = localStorage.getItem(AUTO_STORE) !== "0";
+    sinkId = localStorage.getItem(OUT_STORE) || "";
   } catch (e) {}
+
+  const canPickOutput = !!(window.AudioContext && "setSinkId" in AudioContext.prototype && navigator.mediaDevices);
+
+  function applySink() {
+    if (!audio || !audio.setSinkId) return;
+    audio.setSinkId(sinkId)
+      .then(() => setText(el.outNote, ""))
+      .catch(() => setText(el.outNote, "Couldn't use that device. The bell plays on this computer."));
+  }
+
+  async function listSinks() {
+    try {
+      const outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) =>
+        d.kind === "audiooutput" && d.label && d.deviceId !== "default" && d.deviceId !== "communications");
+      el.sinkSelect.length = 1;
+      outs.forEach((d) => el.sinkSelect.add(new Option(d.label, d.deviceId)));
+      el.sinkSelect.value = outs.some((d) => d.deviceId === sinkId) ? sinkId : "";
+      el.outHelp.hidden = outs.length > 0;
+    } catch (e) {
+      el.outHelp.hidden = false;
+    }
+  }
+
+  function chooseSink() {
+    sinkId = el.sinkSelect.value;
+    try { localStorage.setItem(OUT_STORE, sinkId); } catch (e) {}
+    applySink();
+  }
 
   function toggleAuto() {
     autoAdvance = !autoAdvance;
@@ -618,7 +673,10 @@
   function unlockAudio() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
-    if (!audio) audio = new AC();
+    if (!audio) {
+      audio = new AC();
+      if (sinkId) applySink();
+    }
     if (audio.state === "suspended") audio.resume().catch(() => {});
     return audio;
   }
@@ -950,7 +1008,7 @@
   document.addEventListener("visibilitychange", keepAwake);
 
   document.addEventListener("keydown", (e) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest("select")) return;
     unlockAudio();
     if (pendingAction && (e.key === "Enter" || e.key === "Escape")) {
       e.key === "Enter" ? confirmYes() : closeConfirm();
@@ -980,6 +1038,7 @@
     plus: () => adjust(STEP_SECS), minus: () => adjust(-STEP_SECS), panel: showPanel, top: showTimer,
     sesToggle, sesReset, auto: toggleAuto,
   };
+  el.sinkSelect.addEventListener("change", chooseSink);
   $$("[data-act]").forEach((b) => {
     b.addEventListener("click", (e) => actions[b.dataset.act](e));
   });
@@ -1001,6 +1060,16 @@
   ["mousemove", "mousedown", "touchstart"].forEach((t) => document.addEventListener(t, wakeUi, { passive: true }));
 
   buildOrder();
+  if (canPickOutput) {
+    el.outRow.hidden = false;
+    listSinks();
+    navigator.mediaDevices.addEventListener("devicechange", listSinks);
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: "microphone" })
+        .then((p) => { p.onchange = listSinks; })
+        .catch(() => {});
+    }
+  }
   load();
   lastZone = zoneFor(remaining());
   render();
