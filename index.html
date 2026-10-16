@@ -196,6 +196,27 @@
   }
   .sound-note.show { display: block; }
 
+  .corner {
+    --ses: var(--silver);
+    position: fixed;
+    top: calc(var(--band) + 12px);
+    left: 20px;
+    z-index: 4;
+    width: clamp(150px, 15vw, 240px);
+    opacity: .6;
+    color: var(--silver);
+    font-size: clamp(13px, 1.15vw, 18px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .corner[data-ses="warn"] { --ses: var(--gold); }
+  .corner[data-ses="over"] { --ses: var(--red); }
+  .corner-bar { margin-top: 5px; height: 3px; background: var(--royal-dark); border-radius: 2px; overflow: hidden; }
+  .corner-bar div { height: 100%; width: 0; background: var(--ses); }
+  body.in-panel .corner { display: none; }
+
   .panel {
     min-height: 100vh;
     scroll-snap-align: start;
@@ -462,6 +483,10 @@
     </button>
   </div>
   <div class="sound-note" id="soundNote">Click the page to enable sound</div>
+  <div class="corner" id="corner" data-ses="idle">
+    <span id="wall"></span> · <span id="cornerSes">0:00 / 30:00</span>
+    <div class="corner-bar"><div id="cornerFill"></div></div>
+  </div>
   <div class="confirm" id="confirm" role="dialog" hidden>
     <span id="confirmText"></span>
     <button class="btn primary" id="confirmYes">Yes</button>
@@ -515,6 +540,7 @@
     nowPos: $("nowPos"), nowName: $("nowName"), nowStatus: $("nowStatus"), nowNext: $("nowNext"),
     session: $("session"), sesElapsed: $("sesElapsed"), sesLeft: $("sesLeft"), sesLeftLabel: $("sesLeftLabel"),
     sesStatus: $("sesStatus"), sesPace: $("sesPace"), sesToggle: $("sesToggle"), sesFill: $("sesFill"), stages: $("stages"),
+    corner: $("corner"), wall: $("wall"), cornerSes: $("cornerSes"), cornerFill: $("cornerFill"),
     nowClock: $("nowClock"), panelToggle: $("panelToggle"), panelMute: $("panelMute"), order: $("order"),
     panelFill: $("panelFill"), seekEnd: $("seekEnd"),
     confirm: $("confirm"), confirmText: $("confirmText"), confirmYes: $("confirmYes"), confirmNo: $("confirmNo"),
@@ -752,6 +778,7 @@
     });
   }
 
+  const WALL = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" });
   const SES_STATUS = { idle: "Not started", paused: "Paused", running: "Running", warn: "Running", over: "Over time" };
 
   function renderSession(rem, upcoming) {
@@ -765,7 +792,11 @@
     setText(el.sesLeft, sLeft >= 0 ? mmss(Math.ceil(sLeft / 1000)) : "+" + mmss(Math.floor(-sLeft / 1000)));
     setText(el.sesLeftLabel, sLeft >= 0 ? "Left" : "Over");
     setText(el.sesStatus, SES_STATUS[ses]);
-    el.sesFill.style.width = (Math.min(1, sE / (SESSION_SECS * 1000)) * 100).toFixed(2) + "%";
+    const sesProgress = (Math.min(1, sE / (SESSION_SECS * 1000)) * 100).toFixed(2) + "%";
+    el.sesFill.style.width = el.cornerFill.style.width = sesProgress;
+    el.corner.dataset.ses = ses;
+    setText(el.wall, WALL.format(new Date()));
+    setText(el.cornerSes, `${mmss(Math.floor(sE / 1000))} / ${mmss(SESSION_SECS)}`);
     setText(el.sesToggle, sesRunning ? "Pause session" : sE === 0 ? "Start session" : "Resume session");
     el.sesToggle.classList.toggle("primary", !sesRunning);
 
