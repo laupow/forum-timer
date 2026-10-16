@@ -137,39 +137,40 @@
 
   .mini {
     position: fixed;
-    right: 16px;
-    bottom: calc(var(--band) + 12px);
+    right: 20px;
+    bottom: calc(var(--band) + 16px);
     z-index: 6;
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 5px;
+    gap: 6px;
+    padding: 7px;
     background: rgba(6, 42, 72, .94);
     border: 1px solid var(--royal-dark);
-    border-radius: 12px;
+    border-radius: 16px;
     transition: opacity .4s;
   }
   body.idle .mini, body.in-panel .mini { opacity: 0; pointer-events: none; }
   .pos {
-    padding: 0 8px 0 6px;
-    font-size: 14px;
+    padding: 0 10px 0 8px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--silver);
     font-variant-numeric: tabular-nums;
   }
-  .sep { width: 1px; height: 22px; background: var(--royal-dark); margin: 0 3px; }
+  .sep { width: 1px; height: 30px; background: var(--royal-dark); margin: 0 4px; }
   .mini button {
-    width: 38px;
-    height: 38px;
+    width: 52px;
+    height: 52px;
     display: grid;
     place-items: center;
     padding: 0;
     color: var(--text);
     background: transparent;
     border: 0;
-    border-radius: 8px;
+    border-radius: 11px;
     cursor: pointer;
   }
+  .mini svg { width: 28px; height: 28px; }
   .mini button:hover:not(:disabled) { background: var(--royal-dark); }
   .mini button:disabled { opacity: .3; cursor: default; }
   .mini button.go { background: var(--gold); color: var(--navy); }

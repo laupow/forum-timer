@@ -4,6 +4,8 @@ Countdown timer for a 25-minute, two-candidate forum. Single `index.html`, no bu
 
 Live: https://laupow.github.io/forum-timer/
 
+Changes go through pull requests. Each pull request gets a preview link; merging to `main` updates the live site.
+
 - 15 segments: introduction, opening statements, three questions with answers, closing statements
 - Scroll down (or press C) for moderator controls
 - Bell at time up, chime at 30 seconds left; M mutes, B rings the bell
