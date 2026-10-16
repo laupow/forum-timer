@@ -554,7 +554,6 @@
   const HOLD_SECS = 3;
   const STEP_SECS = 15;
   const IDLE_MS = 3000;
-  const WARN_CHIME = true;
 
   const SPEED = Math.max(0.1, Number(new URLSearchParams(location.search).get("speed")) || 1);
   const STORE = "forum-timer-v1:" + location.pathname + (SPEED === 1 ? "" : ":speed");
@@ -664,7 +663,6 @@
     for (let i = 0; i < times; i++) strike(ac, t0 + i * 0.6, freq, level);
   }
   const timeUpBell = () => ring(3, 784, 0.35);
-  const warnChime = () => ring(1, 1175, 0.2);
 
   function toggleMute() {
     muted = !muted;
@@ -672,14 +670,11 @@
     render();
   }
 
-  const zoneFor = (rem) => (rem <= 0 ? 2 : rem <= WARN_SECS * 1000 ? 1 : 0);
+  const zoneFor = (rem) => (rem <= 0 ? 1 : 0);
   let lastZone = 0;
   function checkSounds(rem) {
     const zone = zoneFor(rem);
-    if (running && !muted && zone > lastZone) {
-      if (zone === 2) timeUpBell();
-      else if (WARN_CHIME) warnChime();
-    }
+    if (running && !muted && zone > lastZone) timeUpBell();
     lastZone = zone;
   }
 
