@@ -207,7 +207,6 @@
   .mini button:disabled { opacity: .3; cursor: default; }
   .mini button.go { background: var(--gold); color: var(--navy); }
   .mini button.muted { color: var(--red); }
-  .mini button.txt { font: inherit; font-size: 18px; font-weight: 900; }
   svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   svg .solid { fill: currentColor; stroke: none; }
 
@@ -317,19 +316,6 @@
   .session .bar { height: 12px; }
   .session .bar-fill { background: var(--ses); }
   .session-btns { display: flex; gap: 10px; flex-wrap: wrap; }
-  .stages { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-  .stages li {
-    padding: 8px 6px;
-    font-size: 15px;
-    font-weight: 700;
-    text-align: center;
-    color: var(--silver);
-    background: rgba(255, 255, 255, .05);
-    border: 2px solid transparent;
-    border-radius: 8px;
-  }
-  .stages li.done { opacity: .55; }
-  .stages li.current { color: var(--white); background: var(--royal); border-color: var(--gold); }
 
   .btns { display: flex; flex-wrap: wrap; gap: 10px; }
   .btn {
@@ -395,7 +381,6 @@
   }
 
   @media (max-width: 700px) {
-    .stages { grid-template-columns: repeat(3, 1fr); }
     .now-top { flex-direction: column; align-items: flex-start; }
     .seek-labels .hint { display: none; }
     .order-head, .row { grid-template-columns: 2em 1fr 4em; }
@@ -482,7 +467,6 @@
           </div>
         </div>
         <div class="bar"><div class="bar-fill" id="sesFill"></div></div>
-        <ol class="stages" id="stages"></ol>
       </div>
 
       <h3>Jump to a segment</h3>
@@ -506,7 +490,6 @@
     <button data-act="next" title="Next segment (→)">
       <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
     </button>
-    <button data-act="plus" class="txt" title="Add 15 seconds (+)">+15</button>
     <span class="sep"></span>
     <button data-act="bell" title="Ring the bell now (B)">
       <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 0 0-12 0v5l-2 2h16z"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
@@ -530,23 +513,22 @@
 
 <script>
   const SEGMENTS = [
-    { who: "Moderator",   what: "Introduction",         secs: 180, stage: "Introduction" },
-    { who: "Candidate 1", what: "Opening Statement",    secs: 120, stage: "Openings" },
-    { who: "Candidate 2", what: "Opening Statement",    secs: 120, stage: "Openings" },
-    { who: "Moderator",   what: "Question 1",           secs: 60,  stage: "Question 1" },
-    { who: "Candidate 1", what: "Answer to Question 1", secs: 120, stage: "Question 1" },
-    { who: "Candidate 2", what: "Answer to Question 1", secs: 120, stage: "Question 1" },
-    { who: "Moderator",   what: "Question 2",           secs: 60,  stage: "Question 2" },
-    { who: "Candidate 1", what: "Answer to Question 2", secs: 120, stage: "Question 2" },
-    { who: "Candidate 2", what: "Answer to Question 2", secs: 120, stage: "Question 2" },
-    { who: "Moderator",   what: "Question 3",           secs: 60,  stage: "Question 3" },
-    { who: "Candidate 1", what: "Answer to Question 3", secs: 120, stage: "Question 3" },
-    { who: "Candidate 2", what: "Answer to Question 3", secs: 120, stage: "Question 3" },
-    { who: "Moderator",   what: "Closing Remarks",      secs: 60,  stage: "Closings" },
-    { who: "Candidate 1", what: "Closing Statement",    secs: 60,  stage: "Closings" },
-    { who: "Candidate 2", what: "Closing Statement",    secs: 60,  stage: "Closings" },
+    { who: "Moderator",   what: "Introduction",         secs: 180 },
+    { who: "Candidate 1", what: "Opening Statement",    secs: 120 },
+    { who: "Candidate 2", what: "Opening Statement",    secs: 120 },
+    { who: "Moderator",   what: "Question 1",           secs: 60 },
+    { who: "Candidate 1", what: "Answer to Question 1", secs: 120 },
+    { who: "Candidate 2", what: "Answer to Question 1", secs: 120 },
+    { who: "Moderator",   what: "Question 2",           secs: 60 },
+    { who: "Candidate 1", what: "Answer to Question 2", secs: 120 },
+    { who: "Candidate 2", what: "Answer to Question 2", secs: 120 },
+    { who: "Moderator",   what: "Question 3",           secs: 60 },
+    { who: "Candidate 1", what: "Answer to Question 3", secs: 120 },
+    { who: "Candidate 2", what: "Answer to Question 3", secs: 120 },
+    { who: "Moderator",   what: "Closing Remarks",      secs: 60 },
+    { who: "Candidate 1", what: "Closing Statement",    secs: 60 },
+    { who: "Candidate 2", what: "Closing Statement",    secs: 60 },
   ];
-  const STAGES = [...new Set(SEGMENTS.map((s) => s.stage))];
   const SESSION_SECS = 30 * 60;
   const SESSION_WARN_SECS = 5 * 60;
   const WARN_SECS = 20;
@@ -576,7 +558,7 @@
     pos: $("pos"), toggleBtn: $("toggleBtn"), muteBtn: $("muteBtn"), soundNote: $("soundNote"),
     nowPos: $("nowPos"), nowName: $("nowName"), nowStatus: $("nowStatus"), nowNext: $("nowNext"),
     session: $("session"), sesElapsed: $("sesElapsed"), sesLeft: $("sesLeft"), sesLeftLabel: $("sesLeftLabel"),
-    sesStatus: $("sesStatus"), sesPace: $("sesPace"), sesToggle: $("sesToggle"), sesFill: $("sesFill"), stages: $("stages"),
+    sesStatus: $("sesStatus"), sesPace: $("sesPace"), sesToggle: $("sesToggle"), sesFill: $("sesFill"),
     corner: $("corner"), wall: $("wall"), cornerSes: $("cornerSes"), cornerFill: $("cornerFill"),
     nowClock: $("nowClock"), panelToggle: $("panelToggle"), panelMute: $("panelMute"), order: $("order"),
     panelAuto: $("panelAuto"),
@@ -816,11 +798,6 @@
       el.order.appendChild(li);
       at += s.secs;
     });
-    STAGES.forEach((name) => {
-      const li = document.createElement("li");
-      li.textContent = name;
-      el.stages.appendChild(li);
-    });
   }
 
   const WALL = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" });
@@ -897,11 +874,6 @@
       el.nowName.textContent = `${s.who} · ${s.what}`;
       const n = SEGMENTS[idx + 1];
       el.nowNext.textContent = n ? `Next: ${n.who} · ${n.what}` : "Last segment";
-      const stage = STAGES.indexOf(s.stage);
-      [...el.stages.children].forEach((li, i) => {
-        li.classList.toggle("done", i < stage);
-        li.classList.toggle("current", i === stage);
-      });
       $$('[data-act="prev"]').forEach((b) => { b.disabled = idx === 0; });
       $$('[data-act="next"]').forEach((b) => { b.disabled = idx === SEGMENTS.length - 1; });
       [...el.order.querySelectorAll(".row")].forEach((b, i) => {
