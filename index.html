@@ -232,7 +232,7 @@
     top: calc(var(--band) + 12px);
     left: 20px;
     z-index: 4;
-    width: clamp(150px, 15vw, 240px);
+    min-width: clamp(120px, 11vw, 200px);
     opacity: .6;
     color: var(--silver);
     font-size: clamp(13px, 1.15vw, 18px);
@@ -243,6 +243,8 @@
   }
   .corner[data-ses="warn"] { --ses: var(--gold); }
   .corner[data-ses="over"] { --ses: var(--red); }
+  .corner .k { font-size: .75em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; margin-right: .25em; }
+  .corner .gap { display: inline-block; width: 1.2em; }
   .corner-bar { margin-top: 5px; height: 3px; background: var(--royal-dark); border-radius: 2px; overflow: hidden; }
   .corner-bar div { height: 100%; width: 0; background: var(--ses); }
   body.in-panel .corner { display: none; }
@@ -502,7 +504,7 @@
   </div>
   <div class="sound-note" id="soundNote">Click the page to enable sound</div>
   <div class="corner" id="corner" data-ses="idle">
-    <span id="wall"></span> · <span id="cornerSes">0:00 / 30:00</span>
+    <span class="k">Now</span><span id="wall"></span><span id="endWrap" hidden><span class="gap"></span><span class="k">Ends</span><span id="endAt"></span></span>
     <div class="corner-bar"><div id="cornerFill"></div></div>
   </div>
   <div class="confirm" id="confirm" role="dialog" hidden>
@@ -559,7 +561,7 @@
     nowPos: $("nowPos"), nowName: $("nowName"), nowStatus: $("nowStatus"), nowNext: $("nowNext"),
     session: $("session"), sesElapsed: $("sesElapsed"), sesLeft: $("sesLeft"), sesLeftLabel: $("sesLeftLabel"),
     sesStatus: $("sesStatus"), sesPace: $("sesPace"), sesToggle: $("sesToggle"), sesFill: $("sesFill"),
-    corner: $("corner"), wall: $("wall"), cornerSes: $("cornerSes"), cornerFill: $("cornerFill"),
+    corner: $("corner"), wall: $("wall"), endWrap: $("endWrap"), endAt: $("endAt"), cornerFill: $("cornerFill"),
     nowClock: $("nowClock"), panelToggle: $("panelToggle"), panelMute: $("panelMute"), order: $("order"),
     panelAuto: $("panelAuto"),
     panelFill: $("panelFill"), seekEnd: $("seekEnd"),
@@ -818,7 +820,9 @@
     el.sesFill.style.width = el.cornerFill.style.width = sesProgress;
     el.corner.dataset.ses = ses;
     setText(el.wall, WALL.format(new Date()));
-    setText(el.cornerSes, `${mmss(Math.floor(sE / 1000))} / ${mmss(SESSION_SECS)}`);
+    el.endWrap.hidden = ses === "idle";
+    const endMs = Math.round((Date.now() + sLeft / SPEED) / 10000) * 10000;
+    setText(el.endAt, WALL.format(new Date(endMs)));
     setText(el.sesToggle, sesRunning ? "Pause session" : sE === 0 ? "Start session" : "Resume session");
     el.sesToggle.classList.toggle("primary", !sesRunning);
 
