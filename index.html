@@ -17,8 +17,6 @@
     --gold: #ffc700;
     --white: #ffffff;
     --red: #ff5b5b;
-    --alarm: #c8102e;
-    --alarm-dark: #6e0a1a;
 
     --bg: var(--navy);
     --text: var(--white);
@@ -56,8 +54,7 @@
   body::after { bottom: 0; }
 
   body[data-state="ready"], body[data-state="paused"] { --state: var(--silver); }
-  body[data-state="warn"] { --state: var(--gold); }
-  body[data-state="danger"], body[data-state="over"], body[data-state="overtime"] { --state: var(--red); }
+  body[data-state="over"], body[data-state="overtime"] { --state: var(--gold); }
 
   .app {
     --page: var(--bg);
@@ -79,25 +76,14 @@
     padding: 4vh 4vw;
     text-align: center;
   }
-  body[data-state="warn"] .app {
+  body[data-state="over"] .app, body[data-state="overtime"] .app {
     --page: var(--gold);
     --ink: var(--navy);
     --ink-soft: var(--navy);
     --clock: var(--navy);
     --track: rgba(9, 60, 102, .25);
+    --pill-ink: var(--gold);
   }
-  body[data-state="danger"] .app, body[data-state="over"] .app, body[data-state="overtime"] .app {
-    --page: var(--alarm);
-    --ink: var(--white);
-    --ink-soft: var(--white);
-    --clock: var(--white);
-    --track: rgba(255, 255, 255, .3);
-    --pill-ink: var(--alarm);
-  }
-  body[data-state="over"] .app { animation: flash 1s steps(1) infinite; }
-  body[data-state="overtime"] .app { animation: pulse 2.4s ease-in-out infinite alternate; }
-  @keyframes flash { 0% { background-color: var(--alarm); } 50% { background-color: var(--alarm-dark); } }
-  @keyframes pulse { from { background-color: var(--alarm); } to { background-color: var(--alarm-dark); } }
 
   .speaker { font-size: min(8.5vw, 14vh); font-weight: 900; line-height: 1; }
   .what { font-size: min(4.2vw, 7.5vh); font-weight: 600; line-height: 1.15; color: var(--ink-soft); }
@@ -132,7 +118,7 @@
     overflow: hidden;
   }
   .bar-fill { height: 100%; width: 0; background: var(--clock, var(--state)); }
-  body[data-state="warn"] .app .ghost { background: var(--navy); }
+  body[data-state="over"] .app .ghost, body[data-state="overtime"] .app .ghost { background: var(--navy); }
   .ghost {
     display: none;
     position: absolute;
@@ -248,8 +234,7 @@
   .corner-bar { margin-top: 5px; height: 3px; background: var(--royal-dark); border-radius: 2px; overflow: hidden; }
   .corner-bar div { height: 100%; width: 0; background: var(--ses); }
   body.in-panel .corner { display: none; }
-  body[data-state="warn"] .corner { color: var(--navy); }
-  body[data-state="danger"] .corner, body[data-state="over"] .corner, body[data-state="overtime"] .corner { color: var(--white); }
+  body[data-state="over"] .corner, body[data-state="overtime"] .corner { color: var(--navy); }
 
   .panel {
     min-height: 100vh;
@@ -556,8 +541,6 @@
   ];
   const SESSION_SECS = 30 * 60;
   const SESSION_WARN_SECS = 5 * 60;
-  const WARN_SECS = 20;
-  const DANGER_SECS = 5;
   const HOLD_SECS = 3;
   const STEP_SECS = 15;
   const IDLE_MS = 3000;
@@ -621,8 +604,6 @@
   function stateFor(rem) {
     if (rem <= 0) return running && -rem < HOLD_SECS * 1000 ? "over" : "overtime";
     if (!running) return elapsed() === 0 ? "ready" : "paused";
-    if (rem <= DANGER_SECS * 1000) return "danger";
-    if (rem <= WARN_SECS * 1000) return "warn";
     return "running";
   }
 
@@ -896,7 +877,7 @@
   }
 
   const STATUS_TEXT = {
-    ready: "Ready", paused: "Paused", running: "Running", warn: "Running", danger: "Running",
+    ready: "Ready", paused: "Paused", running: "Running",
     over: "Time's up", overtime: "Time's up",
   };
   const setText = (node, text) => { if (node.textContent !== text) node.textContent = text; };
