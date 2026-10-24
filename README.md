@@ -1,12 +1,12 @@
 # Forum Timer
 
-Countdown timer for a 17-minute, one-candidate forum. Single `index.html`, no build step.
+Countdown timer for a 23-minute, one-candidate forum. Single `index.html`, no build step.
 
 Live: https://laupow.github.io/forum-timer/
 
 Changes go through pull requests. Each pull request gets a preview link; merging to `main` updates the live site.
 
-- 10 segments: LAC introduction, candidate opening, three questions with answers, candidate closing, LAC closing
+- 14 segments: LAC introduction, candidate opening, five questions with answers, candidate closing, LAC closing
 - Scroll down (or press C) for moderator controls
 - 30-minute session clock in the controls, independent of segment timers; starts with the first segment
 - Screen turns yellow at time up (the only color change); bell at time up
