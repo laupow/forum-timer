@@ -9,8 +9,8 @@ Changes go through pull requests. Each pull request gets a preview link; merging
 - 15 segments: introduction, opening statements, three questions with answers (answer order alternates), candidate closings, LAC closing
 - Scroll down (or press C) for moderator controls
 - 30-minute session clock in the controls, independent of segment timers; starts with the first segment
-- Screen turns yellow at 20 seconds left and red at 5; bell at time up
-- After time up the screen flashes red for 3 seconds, then the next segment starts (A toggles auto-advance)
+- Screen turns yellow at time up (the only color change); bell at time up
+- After time up the screen holds yellow for 3 seconds, then the next segment starts (A toggles auto-advance)
 - Warnings are visual only; the bell rings once at time up. M mutes, B rings the bell
 - Keys: Space start/pause, ← → previous/next, R restart, + − 15 seconds, A auto-advance, F fullscreen, Home reset
 - `?speed=20` runs the clock 20× faster for testing
